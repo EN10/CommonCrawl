@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Common Crawl Search</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-color: #f8fafc;
+            --text-color: #1e293b;
+            --border-color: #e2e8f0;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.5;
+        }
+        
+        .search-container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--text-color);
+            text-align: center;
+        }
+        
+        .search-form {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            margin-bottom: 2rem;
+        }
+
+        .search-form form {
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-form input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+            outline: none;
+        }
+
+        .search-form input:focus {
+            border-color: var(--primary-color);
+        }
+
+        .search-form button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .search-form button:hover:not(:disabled) {
+            background-color: var(--primary-hover);
+        }
+
+        /* Loading indicator styles */
+        .loading-container {
+            display: none;
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 48px;
+            height: 48px;
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1.5rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background-color: #e2e8f0;
+            border-radius: 3px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            width: 0%;
+            height: 100%;
+            background-color: var(--primary-color);
+            transition: width 0.3s ease;
+        }
+
+        .search-status {
+            margin-top: 1rem;
+            color: #64748b;
+            font-size: 0.95rem;
+        }
+
+        /* Result info styles */
+        .result-info {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .result-info h3 {
+            margin-top: 0;
+            color: var(--text-color);
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        /* Fullscreen content styles */
+        .fullscreen-content {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            background: white;
+        }
+
+        .fullscreen-content iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            margin: 0;
+            padding: 0;
+            display: block;
+        }
+
+        /* Overlay styles */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(15, 23, 42, 0.95);
+            color: white;
+            padding: 14px 24px;
+            z-index: 2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.95rem;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .overlay-info {
+            flex-grow: 1;
+        }
+
+        .overlay-info span {
+            margin-right: 1.5rem;
+            white-space: nowrap;
+        }
+
+        .back-button {
+            background: white;
+            color: var(--text-color);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .back-button:hover {
+            background: #f1f5f9;
+            transform: translateY(-1px);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive design */
+        @media (max-width: 640px) {
+            .search-container {
+                margin: 20px auto;
+                padding: 16px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .search-form form {
+                flex-direction: column;
+            }
+
+            .search-form button {
+                width: 100%;
+            }
+
+            .overlay {
+                flex-direction: column;
+                gap: 10px;
+                padding: 10px 16px;
+            }
+
+            .overlay-info span {
+                display: block;
+                margin-bottom: 4px;
+            }
+
+            .back-button {
+                width: 100%;
+                margin-top: 8px;
+            }
+        }
+
+        /* Add this to your existing styles */
+        .results-container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+
+        .result-item {
+            margin: 10px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .technical-details {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .technical-details h3 {
+            margin-top: 0;
+            color: #495057;
+            font-size: 1.1em;
+        }
+
+        .result-actions {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .download-button {
+            display: inline-block;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .download-button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        @media (max-width: 640px) {
+            .result-actions {
+                flex-direction: column;
+            }
+            
+            .download-button {
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="search-container" id="searchContainer">
+        <h1>Common Crawl Search</h1>
+        
+        <div class="search-form">
+            <form method="POST" id="searchForm" onsubmit="return startSearch(event)">
+                <input type="text" name="url" 
+                       placeholder="Enter a URL (e.g., example.com)" 
+                       value="{{ url if url and url != 'None' else '' }}" 
+                       required>
+                <button type="submit" id="searchButton">Search</button>
+            </form>
+        </div>
+
+        <div class="loading-container" id="loadingContainer">
+            <div class="loading-spinner"></div>
+            <div class="progress-bar">
+                <div class="progress-bar-fill" id="progressBar"></div>
+            </div>
+            <div class="search-status" id="searchStatus">Initializing search...</div>
+        </div>
+
+        {% if result %}
+        <div class="results-container">
+            <h2>Latest Version Found</h2>
+            
+            <div class="result-item">
+                <strong>Captured:</strong> {{ formatted_timestamp }}
+            </div>
+
+            <div class="result-item">
+                <strong>Crawl Index:</strong> {{ crawl_index }}
+            </div>
+
+            <div class="result-item">
+                <strong>Status:</strong> {{ additional_info.status_code }}
+            </div>
+
+            <div class="result-item">
+                <strong>MIME Type:</strong> {{ additional_info.mime_type }}
+            </div>
+
+            {% if additional_info.languages != 'N/A' %}
+            <div class="result-item">
+                <strong>Languages:</strong> {{ additional_info.languages }}
+            </div>
+            {% endif %}
+
+            {% if additional_info.charset != 'N/A' %}
+            <div class="result-item">
+                <strong>Charset:</strong> {{ additional_info.charset }}
+            </div>
+            {% endif %}
+
+            <div class="technical-details">
+                <h3>Technical Details</h3>
+                <div class="result-item">
+                    <strong>Length:</strong> {{ additional_info.length }}
+                </div>
+                <div class="result-item">
+                    <strong>Offset:</strong> {{ additional_info.offset }}
+                </div>
+                <div class="result-item">
+                    <strong>Filename:</strong> {{ additional_info.filename }}
+                </div>
+                <div class="result-item">
+                    <strong>Digest:</strong> {{ additional_info.digest }}
+                </div>
+            </div>
+
+            {% if result.url %}
+            <div class="result-item">
+                <strong>Original URL:</strong> <a href="{{ result.url }}" target="_blank">{{ result.url }}</a>
+            </div>
+            {% endif %}
+
+            <div class="result-actions">
+                <a href="/download-file?url={{ url|urlencode }}" class="download-button">
+                    Download Original File
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if content %}
+    <div class="overlay">
+        <div class="overlay-info">
+            <span>📅 {{ formatted_timestamp }}</span>
+            {% if crawl_index %}
+            <span>🗃️ Common Crawl: {{ crawl_index }}</span>
+            {% endif %}
+        </div>
+        <button class="back-button" onclick="location.href='/'">New Search</button>
+    </div>
+    <div class="fullscreen-content">
+        <iframe srcdoc="{{ content|e }}" frameborder="0" scrolling="yes"></iframe>
+    </div>
+    {% endif %}
+
+    <script>
+        const searchForm = document.getElementById('searchForm');
+        const searchButton = document.getElementById('searchButton');
+        const loadingContainer = document.getElementById('loadingContainer');
+        const searchStatus = document.getElementById('searchStatus');
+        const progressBar = document.getElementById('progressBar');
+
+        function startSearch(event) {
+            event.preventDefault();
+            
+            // Show loading container and disable search button
+            loadingContainer.style.display = 'block';
+            searchButton.disabled = true;
+            progressBar.style.width = '0%';
+            
+            const formData = new FormData(searchForm);
+            const url = formData.get('url');
+
+            // Create EventSource for real-time updates
+            const eventSource = new EventSource(`/search-progress?url=${encodeURIComponent(url)}`);
+
+            eventSource.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                searchStatus.textContent = data.status;
+                if (data.progress) {
+                    progressBar.style.width = `${data.progress}%`;
+                }
+
+                if (data.complete) {
+                    eventSource.close();
+                    // Submit the form to get results
+                    searchForm.submit();
+                }
+            };
+
+            eventSource.onerror = function() {
+                eventSource.close();
+                searchStatus.textContent = 'Error occurred during search';
+                searchButton.disabled = false;
+                setTimeout(() => {
+                    loadingContainer.style.display = 'none';
+                }, 2000);
+            };
+
+            return false;
+        }
+    </script>
+</body>
+</html> 
